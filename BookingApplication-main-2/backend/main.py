@@ -192,19 +192,51 @@ class BookingProcessor(OptimizedBoardingProcessor):
             if not line:
                 continue
             
-            parts = line.split()
-            if len(parts) < 2:
-                continue
+            # Handle CSV format with potential quotes and commas
+            booking_id = ''
+            seats_str = ''
             
-            booking_id = parts[0]
+            # Check if line contains quotes (CSV format)
+            if '"' in line:
+                # Parse CSV format: 101, "A1,B1" or 101,"A1,B1"
+                import re
+                csv_match = re.match(r'^([^,]+),\s*"([^"]+)"', line)
+                if csv_match:
+                    booking_id = csv_match.group(1).strip()
+                    seats_str = csv_match.group(2).strip()
+                else:
+                    # Fallback for malformed CSV
+                    parts = line.split(',')
+                    if len(parts) >= 2:
+                        booking_id = parts[0].strip()
+                        seats_str = ','.join(parts[1:]).replace('"', '').strip()
+            else:
+                # Handle tab/space separated format: 101 A1,B1 or 101	A1,B1
+                parts = re.split(r'[\s,]+', line)
+                if len(parts) < 2:
+                    continue
+                
+                booking_id = parts[0]
+                
+                # Join remaining parts and handle different separators
+                remaining_parts = parts[1:]
+                if len(remaining_parts) == 1 and ',' in remaining_parts[0]:
+                    # Format: 101 A1,B1
+                    seats_str = remaining_parts[0]
+                else:
+                    # Format: 101 A1 B1 (space separated seats)
+                    seats_str = ','.join(remaining_parts)
+            
+            if not booking_id or not seats_str:
+                continue
             
             # Check for duplicates
             if booking_id in booking_ids:
                 print(f"Warning: Duplicate booking ID {booking_id}")
                 continue
             
-            seats_str = ''.join(parts[1:])
-            seats = [s.strip() for s in seats_str.split(',') if s.strip()]
+            # Parse seats - handle both comma and space separated
+            seats = [s.strip() for s in re.split(r'[,\s]+', seats_str) if s.strip()]
             
             # Validate seat formats
             valid_seats = [seat for seat in seats if re.match(r'^[A-D]\d+$', seat)]

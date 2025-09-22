@@ -20,7 +20,9 @@ export function BookingInput({ onDataSubmit, onApiResult }: BookingInputProps) {
 120	A20,C2
 150	D15,C15
 200	B5,A5
-300	C18,D18`;
+300	C18,D18
+400,"A10,B10"
+500, "C5,D5"`;
 
   // Check backend status on component mount
   React.useEffect(() => {

@@ -237,10 +237,44 @@ export function parseBookingData(data: string): Booking[] {
     const line = lines[i].trim();
     if (!line) continue;
     
-    const parts = line.split(/\s+/);
-    if (parts.length < 2) continue;
+    // Handle CSV format with potential quotes and commas
+    let bookingId = '';
+    let seatsStr = '';
     
-    const bookingId = parts[0];
+    // Check if line contains quotes (CSV format)
+    if (line.includes('"')) {
+      // Parse CSV format: 101, "A1,B1" or 101,"A1,B1"
+      const csvMatch = line.match(/^([^,]+),\s*"([^"]+)"/);
+      if (csvMatch) {
+        bookingId = csvMatch[1].trim();
+        seatsStr = csvMatch[2].trim();
+      } else {
+        // Fallback for malformed CSV
+        const parts = line.split(',');
+        if (parts.length >= 2) {
+          bookingId = parts[0].trim();
+          seatsStr = parts.slice(1).join(',').replace(/"/g, '').trim();
+        }
+      }
+    } else {
+      // Handle tab/space separated format: 101 A1,B1 or 101	A1,B1
+      const parts = line.split(/[\s,]+/);
+      if (parts.length < 2) continue;
+      
+      bookingId = parts[0];
+      
+      // Join remaining parts and handle different separators
+      const remainingParts = parts.slice(1);
+      if (remainingParts.length === 1 && remainingParts[0].includes(',')) {
+        // Format: 101 A1,B1
+        seatsStr = remainingParts[0];
+      } else {
+        // Format: 101 A1 B1 (space separated seats)
+        seatsStr = remainingParts.join(',');
+      }
+    }
+    
+    if (!bookingId || !seatsStr) continue;
     
     // Check for duplicate booking IDs
     if (bookingSet.has(bookingId)) {
@@ -248,8 +282,11 @@ export function parseBookingData(data: string): Booking[] {
       continue;
     }
     
-    const seatsStr = parts.slice(1).join('');
-    const seats = seatsStr.split(',').map(s => s.trim()).filter(s => s);
+    // Parse seats - handle both comma and space separated
+    const seats = seatsStr
+      .split(/[,\s]+/)
+      .map(s => s.trim())
+      .filter(s => s && s !== '');
     
     // Validate seat formats
     const validSeats = seats.filter(seat => /^[A-D]\d+$/.test(seat));

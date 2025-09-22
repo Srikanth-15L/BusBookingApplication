@@ -9,7 +9,11 @@
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:backend\"",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:backend": "cd backend && python -m pytest test_main.py -v"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
